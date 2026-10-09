@@ -30,7 +30,7 @@ public class Car {
   private String color;
 
   @Column(name = "year_manufacture", nullable = false)
-  private Long yearManufacture;
+  private Integer yearManufacture;
 
   @Column(nullable = false)
   private Boolean imported;
@@ -44,15 +44,12 @@ public class Car {
   @Column(name = "selling_price", precision = 12, scale = 2)
   private BigDecimal sellingPrice;
 
-  //@Column(name = "customer_id")
-  //private Long customerId;
-
   @ManyToOne
   @JoinColumn(name = "customer_id")
   private Customer customer;
 
   public Car() {
-    
+
   }
 
   public Long getId() {
@@ -87,11 +84,11 @@ public class Car {
     this.color = color;
   }
 
-  public Long getYearManufacture() {
+  public Integer getYearManufacture() {
     return yearManufacture;
   }
 
-  public void setYearManufacture(Long yearManufacture) {
+  public void setYearManufacture(Integer yearManufacture) {
     this.yearManufacture = yearManufacture;
   }
 
@@ -127,21 +124,15 @@ public class Car {
     this.sellingPrice = sellingPrice;
   }
 
-  //public Long getCustomerId() {
-  //  return customerId;
-  //}
-
-  //public void setCustomerId(Long customerId) {
-  //  this.customerId = customerId;
-  //}
-
-  // customerId agora é obtido a partir do relacionamento
   public Long getCustomerId() {
     return customer != null ? customer.getId() : null;
+  }
+
+  public Customer getCustomer() {
+    return customer;
   }
 
   public void setCustomer(Customer customer) {
     this.customer = customer;
   }
-
 }
