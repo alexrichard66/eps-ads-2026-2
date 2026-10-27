@@ -6,7 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 // Define que esta classe representa uma entidade do banco de dados
 @Entity
 
@@ -36,9 +36,11 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // Campo responsável por armazenar a senha do usuário
-    @Column(nullable = false)
-    private String password;
+     // Campo responsável por armazenar a senha do usuário
+    // Impede que a senha apareça nas respostas JSON
+   @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+   @Column(nullable = false)
+   private String password;
 
     // Mapeia o atributo isAdmin para a coluna is_admin do banco
     // O valor padrão é false

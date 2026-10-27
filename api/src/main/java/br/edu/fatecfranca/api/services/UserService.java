@@ -5,51 +5,120 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import br.edu.fatecfranca.api.dtos.UserRequest;
 import br.edu.fatecfranca.api.entities.User;
 import br.edu.fatecfranca.api.repositories.UserRepository;
 
-// Indica que esta classe é uma camada de serviço do Spring
-// A Service fica entre o Controller e o Repository
+import org.springframework.security.crypto.password.PasswordEncoder;
+import br.edu.fatecfranca.api.dtos.LoginRequest;
+
+
+
 @Service
 public class UserService {
 
-    // Repository utilizado para acessar os dados dos usuários
     private final UserRepository repository;
+     private final PasswordEncoder passwordEncoder;
+    // Construtor que recebe o repository
+      public UserService(UserRepository repository, PasswordEncoder passwordEncoder) {
+       this.repository = repository;
+       this.passwordEncoder = passwordEncoder;
+   }
 
-    // Injeção de dependência do UserRepository
-    public UserService(UserRepository repository) {
-        this.repository = repository;
-    }
 
-    // Cria um novo usuário no banco
-    // O método save() faz o INSERT quando o usuário ainda não possui id
-    public User create(User user) {
+
+    // NOVO: copia os dados do DTO para a entidade User
+    // Incrementado em 23/10/2026
+     private void copyToEntity(UserRequest request, User user) {
+       user.setFullname(request.fullname());
+       user.setUsername(request.username());
+       user.setEmail(request.email());
+       // passwordEncoder gera o hash para a senha recebida
+       user.setPassword(passwordEncoder.encode(request.password()));
+       user.setIsAdmin(Boolean.TRUE.equals(request.isAdmin()));
+   }
+
+
+      public Optional<User> authenticate(LoginRequest request) {
+       String usernameOrEmail = request.usernameOrEmail().strip();
+
+
+       Optional<User> result =
+               repository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
+
+
+       if (result.isEmpty()) {
+           return Optional.empty();
+       }
+
+
+       User user = result.get();
+
+
+       // Neste ponto ocorre a comparação entre os hashes da senha
+       // digitada e da senha cadastrada
+       boolean validPassword = passwordEncoder.matches(
+           request.password(),
+           user.getPassword()
+       );
+
+
+       if (!validPassword) {
+           return Optional.empty();
+       }
+
+
+       return Optional.of(user);
+   }
+
+
+    // ALTERADO: agora recebe UserRequest em vez de User
+    public User create(UserRequest request) {
+
+        // Cria um novo objeto User
+        User user = new User();
+
+        // Transfere os dados do DTO para a entidade
+        copyToEntity(request, user);
+
+        // Salva o usuário no banco
         return repository.save(user);
     }
 
-    // Retorna todos os usuários cadastrados
+    // Lista todos os usuários
     public List<User> findAll() {
         return repository.findAll();
     }
 
-    // Procura um usuário pelo id
-    // Optional é utilizado porque o usuário pode ou não existir
+    // Busca usuário pelo ID
     public Optional<User> findById(Long id) {
         return repository.findById(id);
     }
 
-    // Verifica se existe um usuário com determinado id
+    // Verifica se existe um usuário com o ID informado
     public boolean existsById(Long id) {
         return repository.existsById(id);
     }
 
-    // Atualiza um usuário existente
-    // O save() também pode fazer UPDATE quando o objeto já possui id
-    public User update(User user) {
+    // ALTERADO: recebe o ID e os dados do DTO
+    public User update(Long id, UserRequest request) {
+
+        // Busca o usuário existente no banco
+        User user = repository.findById(id)
+                .orElseThrow(() ->
+                    new IllegalArgumentException(
+                        "Usuário não encontrado: " + id
+                    )
+                );
+
+        // Atualiza os atributos com os dados do DTO
+        copyToEntity(request, user);
+
+        // Salva as alterações
         return repository.save(user);
     }
 
-    // Remove um usuário pelo id
+    // Exclui um usuário pelo ID
     public void deleteById(Long id) {
         repository.deleteById(id);
     }

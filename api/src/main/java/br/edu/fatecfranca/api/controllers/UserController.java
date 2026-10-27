@@ -1,101 +1,117 @@
 package br.edu.fatecfranca.api.controllers;
 
+import br.edu.fatecfranca.api.dtos.UserResponse;
+
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import br.edu.fatecfranca.api.dtos.UserRequest;
 import br.edu.fatecfranca.api.entities.User;
 import br.edu.fatecfranca.api.services.UserService;
+import jakarta.validation.Valid;
+
+
+import br.edu.fatecfranca.api.dtos.LoginRequest;
+import br.edu.fatecfranca.api.dtos.UserResponse;
+
+
+
 
 // Define esta classe como um Controller REST
 @RestController
 
-// Define a rota principal deste controller
-// Todos os endpoints começam com /users
+// Define a rota principal dos usuários
 @RequestMapping("/users")
 public class UserController {
 
-    // Service utilizado pelo controller
     private final UserService service;
 
-    // Injeção de dependência do UserService
+    // Construtor que recebe o UserService
     public UserController(UserService service) {
         this.service = service;
     }
 
+      @PostMapping("/login")
+   public ResponseEntity<UserResponse> login(
+           @Valid @RequestBody LoginRequest request) {
+
+
+       return service.authenticate(request)
+               .map(UserResponse::new)
+               .map(ResponseEntity::ok)
+               .orElseGet(() -> ResponseEntity
+                       .status(HttpStatus.UNAUTHORIZED)
+                       .build());
+   }
+
+
+    // ALTERADO: recebe UserRequest no cadastro
     // POST /users
-    // Responsável por cadastrar um novo usuário
     @PostMapping
-    public ResponseEntity<User> create(@RequestBody User user) {
+   public ResponseEntity<UserResponse> create(
+           @RequestBody UserRequest request) {
 
-        // Envia o usuário recebido para a camada Service
-        User savedUser = service.create(user);
 
-        // Retorna HTTP 201 - Created
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(savedUser);
-    }
+       User savedUser = service.create(request);
+
+
+       return ResponseEntity
+               .status(HttpStatus.CREATED)
+               .body(new UserResponse(savedUser));
+   }
 
     // GET /users
-    // Retorna todos os usuários
-    @GetMapping
-    public List<User> findAll() {
-        return service.findAll();
-    }
+    // Lista todos os usuários cadastrados
+   @GetMapping
+   public List<UserResponse> findAll() {
+       return service.findAll()
+               .stream()
+               .map(UserResponse::new)
+               .toList();
 
     // GET /users/{id}
-    // Procura um usuário específico pelo id
+    // Busca um usuário pelo ID
     @GetMapping("/{id}")
-    public ResponseEntity<User> findById(@PathVariable Long id) {
+   public ResponseEntity<UserResponse> findById(@PathVariable Long id) {
+       return service.findById(id)
+               .map(UserResponse::new)
+               .map(ResponseEntity::ok)
+               .orElse(ResponseEntity.notFound().build());
+   }
 
-        // Se encontrar o usuário, retorna HTTP 200
-        // Se não encontrar, retorna HTTP 404
-        return service.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
 
+    // ALTERADO: recebe UserRequest para atualização
     // PUT /users/{id}
-    // Atualiza um usuário existente
     @PutMapping("/{id}")
-    public ResponseEntity<User> update(
-            @PathVariable Long id,
-            @RequestBody User user) {
+   public ResponseEntity<UserResponse> update(
+           @PathVariable Long id,
+           @RequestBody UserRequest request) {
 
-        // Primeiro verifica se o usuário existe
-        if (!service.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
 
-        // Define o id recebido pela URL no objeto
-        // para garantir que o usuário correto seja atualizado
-        user.setId(id);
+       if (!service.existsById(id)) {
+           return ResponseEntity.notFound().build();
+       }
 
-        // Atualiza o usuário e retorna HTTP 200
-        return ResponseEntity.ok(service.update(user));
-    }
+
+       User updatedUser = service.update(id, request);
+
+
+       return ResponseEntity.ok(new UserResponse(updatedUser));
+   }
 
     // DELETE /users/{id}
-    // Exclui um usuário pelo id
+    // Exclui o usuário cadastrado
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
 
-        // Verifica se o usuário existe antes de excluir
         if (!service.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
 
-        // Exclui o usuário
         service.deleteById(id);
 
         // Retorna HTTP 204 - No Content
